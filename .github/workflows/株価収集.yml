@@ -19,10 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 注意: このrunブロックにはASCII以外を書かないこと。
+      # ActionsはステップをBOMなし一時ファイルに書き出すため、
+      # Windows PowerShell 5.1 が日本語リテラルを文字化けさせる。
+      # スクリプト名(日本語)は実行時にフォルダから検出して解決する。
       - name: 株価データ収集スクリプトを実行
         shell: powershell
         run: |
-          & ".\キオクシア株価収集.ps1"
+          $script = Get-ChildItem -Path . -Filter *.ps1 | Select-Object -First 1
+          if (-not $script) { Write-Error "collector script not found"; exit 1 }
+          & $script.FullName
           exit $LASTEXITCODE
 
       - name: 変更をコミットしてプッシュ
