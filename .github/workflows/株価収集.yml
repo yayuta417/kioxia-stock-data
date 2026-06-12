@@ -39,7 +39,15 @@ jobs:
           git add -A
           if (git status --porcelain) {
             git commit -m ("株価データ自動収集 " + (Get-Date).ToUniversalTime().AddHours(9).ToString("yyyy-MM-dd HH:mm") + " JST")
-            git push
+            # PTSポーラーが同時刻にプッシュしている場合に備え、rebase+リトライで競合を回避する
+            $ok = $false
+            for ($i = 0; $i -lt 3; $i++) {
+              git pull --rebase origin main
+              git push origin main
+              if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+              Start-Sleep -Seconds (10 + 15 * $i)
+            }
+            if (-not $ok) { exit 1 }
           } else {
             Write-Host "新規データなし(コミットをスキップ)"
           }
